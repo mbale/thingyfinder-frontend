@@ -1,18 +1,36 @@
 <template>
-  <div class="home">
-    <img alt="Vue logo" src="../assets/logo.png">
-    <HelloWorld msg="Welcome to Your Vue.js + TypeScript App"/>
-  </div>
+  <section class="section">
+    <DeviceMap v-if="activeDevice"></DeviceMap>
+    <DeviceList></DeviceList>
+  </section>
 </template>
 
 <script lang="ts">
 import Vue from 'vue';
-import HelloWorld from '@/components/HelloWorld.vue'; // @ is an alias to /src
+import DeviceMap from '@/components/DeviceMap.vue';
+import DeviceList from '@/components/DeviceList.vue';
+import { Device } from '@/store';
 
 export default Vue.extend({
-  name: 'home',
+  name: 'Home',
+  metaInfo: {
+    title: 'Thingyfinder - Devices',
+  },
   components: {
-    HelloWorld,
+    DeviceMap,
+    DeviceList,
+  },
+  computed: {
+    activeDevice(): Device {
+      return this.$store.state.activeDevice;
+    },
+  },
+  async created() {
+    await this.$store.dispatch('getBeacons');
+    await this.$store.dispatch('getStates');
   },
 });
 </script>
+
+<style lang="scss" scoped>
+</style>
