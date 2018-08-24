@@ -7,6 +7,8 @@ pipeline:
       - latest
     secrets:
       - gcr_json_key
+    when:
+      branch: master
   # deploy:
   #   image: quay.io/honestbee/drone-kubernetes
   #   kubernetes_server: ${KUBERNETES_SERVER}
