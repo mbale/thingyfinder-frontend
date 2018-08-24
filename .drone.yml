@@ -1,0 +1,22 @@
+pipeline:
+  gcr:
+    image: plugins/gcr
+    repo: leafcreative-214013/projects/thingyfinder-frontend
+    tags:
+      - ${DRONE_COMMIT}
+      - latest
+    secrets:
+      - gcr_json_key
+  # deploy:
+  #   image: quay.io/honestbee/drone-kubernetes
+  #   kubernetes_server: ${KUBERNETES_SERVER}
+  #   kubernetes_token: ${KUBERNETES_TOKEN}
+  #   kubernetes_cert: ${KUBERNETES_CERT}
+  #   deployment: frontend-deployment
+  #   repo: gcr.io/betacle-202016/master/frontend
+  #   container: frontend-container
+  #   namespace: default
+  #   tag: ${DRONE_COMMIT}
+  #   secrets: [kubernetes_server, kubernetes_token, kubernetes_cert]
+  #   when:
+  #     branch: [master]
