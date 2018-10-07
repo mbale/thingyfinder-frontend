@@ -28,6 +28,7 @@ export default Vue.extend({
   async created() {
     await this.$store.dispatch('getBeacons');
     await this.$store.dispatch('getStates');
+    await this.$store.dispatch('getHubs');
   },
 });
 </script>

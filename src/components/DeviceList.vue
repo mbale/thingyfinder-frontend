@@ -17,10 +17,10 @@
               <div class="select">
                 <select v-model="searchType">
                   <option value="" selected="selected">Filter type</option>
-                  <option>SerialNumber</option>
+                  <option>Serial Number</option>
                   <option>Owner</option>
-                  <option>AssetDescription</option>
-                  <option>AssetType</option>
+                  <option>Asset Description</option>
+                  <option>Asset Type</option>
                 </select>
               </div>
             </p>
@@ -37,12 +37,14 @@
     <table class="table table is-striped is-hoverable is-fullwidth is-bordered">
       <thead>
         <tr>
-          <th><abbr title="SerialNumber">SerialNumber</abbr></th>
+          <th><abbr title="SerialNumber">Serial Number</abbr></th>
           <th><abbr title="Owner">Owner</abbr></th>
-          <th><abbr title="AssetDescription">AssetDescription</abbr></th>
-          <th><abbr title="AssetType">AssetType</abbr></th>
+          <th><abbr title="AssetDescription">Asset Description</abbr></th>
+          <th><abbr title="AssetType">Asset Type</abbr></th>
           <th><abbr title="State">State</abbr></th>
           <th><abbr title="AssetAction">Action</abbr></th>
+          <th><abbr title="Location">Location</abbr></th>
+          <!-- <th><abbr title="Events">Events</abbr></th> -->
         </tr>
       </thead>
       <tbody>
@@ -63,6 +65,15 @@
               <span>Map</span>
             </a>
           </td>
+          <td>{{ getDeviceLocation(device.SerialNumber) }}</td>
+          <!-- <td>
+            <a class="button" @click="showEvents(device.SerialNumber)">
+              <span class="icon">
+                <font-awesome-icon icon="calendar" size="sm" />
+              </span>
+              <span>Events</span>
+            </a>
+          </td> -->
         </tr>
       </tbody>
     </table>
@@ -79,12 +90,48 @@
         <li><a class="pagination-link" aria-label="Goto page 86">86</a></li>
       </ul>
     </nav>
+
+    <!-- Modal -->
+    <div class="modal" ref="modal">
+      <div class="modal-background"></div>
+      <div class="modal-content">
+        <table>
+          <thead>
+            <tr>
+              <th><abbr title="Id">Id</abbr></th>
+              <th><abbr title="Time">Time</abbr></th>
+              <th><abbr title="Sequence">Sequence</abbr></th>
+              <th><abbr title="Beacon SerialNumber">Beacon SerialNumber</abbr></th>
+              <th><abbr title="Beacon">Beacon</abbr></th>
+              <th><abbr title="Hub SerialNumber">Hub SerialNumber</abbr></th>
+              <th><abbr title="Hub">Hub</abbr></th>
+              <th><abbr title="Type">Type</abbr></th>
+              <th><abbr title="Decibels">Decibels</abbr></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr :class="['Row-' + event.id]" v-for="event in events" v-bind:key="event.id">
+              <td>{{ event.id }}</td>
+              <td>{{ event.Time || 'Unknown' }}</td>
+              <td>{{ event.Sequence || 'Unknown' }}</td>
+              <td>{{ event.Beacon_SerialNumber }}</td>
+              <td>{{ event.Beacon }}</td>
+              <td>{{ event.Hub_SerialNumber }}</td>
+              <td>{{ event.Hub }}</td>
+              <td>{{ event.Type }}</td>
+              <td>{{ event.Decibels }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <button @click="showEvents" class="modal-close is-large" aria-label="close"></button>
+    </div>
   </section>
 </template>
 
 <script lang="ts">
 import Vue from 'vue';
-import { MUTATIONS } from '@/store';
+import { MUTATIONS, Device, Event, Hub } from '@/store';
 
 export default Vue.extend({
   name: 'DeviceList',
@@ -92,6 +139,7 @@ export default Vue.extend({
     return {
       searchType: '',
       searchValue: '',
+      events: [],
     };
   },
   watch: {
@@ -115,6 +163,20 @@ export default Vue.extend({
     },
   },
   methods: {
+    getDeviceLocation(serialNumber: string) {
+      const events: Event[] = this.$store.getters['getEventsByBeacon'](serialNumber);
+      const event: Event = this.$store.getters['getEventsByBeacon'](serialNumber)[events.length - 1];
+
+      if (event) {
+        const hub: Hub = this.$store.getters['getHubBySerial'](event.Hub_SerialNumber);
+
+        if (hub) {
+          return hub.Name;
+        }
+      }
+
+      return 'No event';
+    },
     showOnMap(serialNumber: string) {
       const previousActiveRow = document.querySelector('tr.is-selected')
 
@@ -129,12 +191,21 @@ export default Vue.extend({
         row.classList.toggle('is-selected');
       }
     },
+    showEvents(serialNumber: string) {
+      this.events = this.$store.getters['getEventsByBeacon'](serialNumber);
+      (this.$refs.modal as HTMLElement).classList.toggle('is-active');
+    }
   },
 });
 
 </script>
 
 <style lang="scss" scoped>
+
+.modal-content {
+  background: white;
+  padding: 50px;
+}
 
 .table {
   min-width: 100%;

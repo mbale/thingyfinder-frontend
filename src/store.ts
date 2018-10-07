@@ -9,6 +9,8 @@ export const MUTATIONS = {
   UPDATE_FILTER_TYPE: 'UPDATE_FILTER_TYPE',
   UPDATE_FILTER_VALUE: 'UPDATE_FILTER_VALUE',
   UPDATE_ACTIVE_DEVICE: 'UPDATE_ACTIVE_DEVICE',
+  UPDATE_HUBS: 'UPDATE_HUBS',
+  UPDATE_EVENTS: 'UPDATE_EVENTS',
 };
 
 enum DeviceFilterTypes {
@@ -64,6 +66,34 @@ interface RootState {
   filterType: DeviceFilterTypes;
   filterValue: string | null;
   activeDevice: Device | null;
+  hubs: Hub[];
+  events: Event[];
+}
+
+export interface Event {
+  id: number;
+  Time: string;
+  Sequence: number;
+  Beacon_SerialNumber: string;
+  Beacon?: any;
+  Hub_SerialNumber: string;
+  Hub?: any;
+  Type?: any;
+  Decibels: number;
+}
+
+export interface Location {
+  x: number;
+  y: number;
+}
+
+export interface Hub {
+  SerialNumber: string;
+  Type: string;
+  Name: string;
+  X: number;
+  Y: number;
+  Location: Location;
 }
 
 const store: StoreOptions<RootState> = {
@@ -72,8 +102,15 @@ const store: StoreOptions<RootState> = {
     filterType: DeviceFilterTypes.Null,
     filterValue: null,
     activeDevice: null,
+    hubs: [],
+    events: [],
   },
   getters: {
+    getEventsByBeacon: (state) => (serialNumber) =>
+      state.events.filter((event) => event.Beacon_SerialNumber === serialNumber).sort((a, b) => {
+        return new Date(a.Time).getTime() - new Date(b.Time).getTime();
+    }),
+    getHubBySerial: (state) => (serialNumber) => state.hubs.find((hub) => hub.SerialNumber === serialNumber),
     getDeviceListByFilter({ deviceList, filterType, filterValue }) {
       if (filterType === DeviceFilterTypes.Null || !filterValue) {
         return deviceList;
@@ -113,23 +150,52 @@ const store: StoreOptions<RootState> = {
         state.activeDevice = newActiveDevice;
       }
     },
-
+    [MUTATIONS.UPDATE_HUBS](state, { hubs }) {
+      state.hubs = hubs;
+    },
+    [MUTATIONS.UPDATE_EVENTS](state, { events }) {
+      state.events = state.events.concat((events));
+    },
   },
   actions: {
     async getBeacons({ commit }) {
-      const { data } = await Vue.axios.get('tag');
+      const { data } = await Vue.axios.get('api/tag');
+
       commit(MUTATIONS.UPDATE_DEVICE_LIST, data.map((dat: Device) => {
         dat.DeviceState = null;
         return dat;
       }));
     },
-    async getStates({ commit, state }) {
+    async getHubs({ commit }) {
+      const { data } = await Vue.axios.get('hub');
+
+      commit(MUTATIONS.UPDATE_HUBS, { hubs: data });
+    },
+    async getEventsByBeaconSerial({ commit }, { beaconSerial }) {
+      try {
+        const { data } = await Vue.axios.get(`event/${beaconSerial}/20`);
+        commit(MUTATIONS.UPDATE_EVENTS, { events: data });
+      } catch (error) {
+        console.log(error);
+      }
+    },
+    async getStates({ commit, state, dispatch }) {
       const deviceList = state.deviceList;
 
       for (const { SerialNumber } of deviceList) {
-        if (SerialNumber !== '' && SerialNumber) {
-          const { data } = await Vue.axios.get(`tag/triangulationPoints/${SerialNumber}/10`);
-          commit(MUTATIONS.UPDATE_DEVICE_STATUS, { serialNumber: SerialNumber, deviceState: data })
+        if (SerialNumber !== '') {
+          try {
+            const { data } = await Vue.axios.get(`api/tag/triangulationPoints/${SerialNumber}/10`);
+            commit(MUTATIONS.UPDATE_DEVICE_STATUS, { serialNumber: SerialNumber, deviceState: data });
+
+            try {
+              await dispatch('getEventsByBeaconSerial', {beaconSerial: SerialNumber });
+            } catch (error) {
+              console.log('no information')
+            }
+          } catch (error) {
+            // console.log(error);
+          }
         }
       }
     },
