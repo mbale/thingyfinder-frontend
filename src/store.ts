@@ -164,9 +164,9 @@ const store: StoreOptions<RootState> = {
       const filtered: Device[] = data.filter((device: Device) => {
         if (device.AssetDescription) {
           if (device.AssetDescription.includes('JL')) {
-            return false;
+            return true;
           }
-          return true;
+          return false;
         }
       });
 
