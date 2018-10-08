@@ -161,7 +161,16 @@ const store: StoreOptions<RootState> = {
     async getBeacons({ commit }) {
       const { data } = await Vue.axios.get('api/tag');
 
-      commit(MUTATIONS.UPDATE_DEVICE_LIST, data.map((dat: Device) => {
+      const filtered: Device[] = data.filter((device: Device) => {
+        if (device.AssetDescription) {
+          if (device.AssetDescription.includes('JL')) {
+            return false;
+          }
+          return true;
+        }
+      });
+
+      commit(MUTATIONS.UPDATE_DEVICE_LIST, filtered.map((dat: Device) => {
         dat.DeviceState = null;
         return dat;
       }));
