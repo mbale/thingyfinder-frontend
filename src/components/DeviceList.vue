@@ -18,9 +18,7 @@
                 <select v-model="searchType">
                   <option value="" selected="selected">Filter type</option>
                   <option>Serial Number</option>
-                  <option>Owner</option>
                   <option>Asset Description</option>
-                  <option>Asset Type</option>
                 </select>
               </div>
             </p>
@@ -38,42 +36,33 @@
       <thead>
         <tr>
           <th><abbr title="SerialNumber">Serial Number</abbr></th>
-          <th><abbr title="Owner">Owner</abbr></th>
           <th><abbr title="AssetDescription">Asset Description</abbr></th>
-          <th><abbr title="AssetType">Asset Type</abbr></th>
           <th><abbr title="State">State</abbr></th>
-          <th><abbr title="AssetAction">Action</abbr></th>
+          <th><abbr title="LastActiveTime">Last active time</abbr></th>
           <th><abbr title="Location">Location</abbr></th>
-          <!-- <th><abbr title="Events">Events</abbr></th> -->
+          <th><abbr title="History">History</abbr></th>
         </tr>
       </thead>
       <tbody>
         <tr :class="['Row-' + device.SerialNumber]" v-for="device in devices" v-bind:key="device.SerialNumber">
           <td>{{ device.SerialNumber.length ? device.SerialNumber : 'Unknown' }}</td>
-          <td>{{ device.owner || 'Unknown' }}</td>
           <td>{{ device.AssetDescription || 'Unknown' }}</td>
-          <td>{{ device.AssetType }}</td>
           <td>
             <font-awesome-icon v-if="!device.DeviceState" icon="spinner" size="lg" spin />
             <font-awesome-icon v-else icon="check" size="lg" />
           </td>
           <td>
-            <a class="button" @click="showOnMap(device.SerialNumber)" :disabled="!device.DeviceState">
-              <span class="icon">
-                <font-awesome-icon icon="map" size="sm" />
-              </span>
-              <span>Map</span>
-            </a>
+            {{ getLastTimeOfDevice(device.SerialNumber) }}
           </td>
           <td>{{ getDeviceLocation(device.SerialNumber) }}</td>
-          <!-- <td>
+          <td>
             <a class="button" @click="showEvents(device.SerialNumber)">
               <span class="icon">
                 <font-awesome-icon icon="calendar" size="sm" />
               </span>
-              <span>Events</span>
+              <span>History</span>
             </a>
-          </td> -->
+          </td>
         </tr>
       </tbody>
     </table>
@@ -95,34 +84,21 @@
     <div class="modal" ref="modal">
       <div class="modal-background"></div>
       <div class="modal-content">
-        <table>
-          <thead>
-            <tr>
-              <th><abbr title="Id">Id</abbr></th>
-              <th><abbr title="Time">Time</abbr></th>
-              <th><abbr title="Sequence">Sequence</abbr></th>
-              <th><abbr title="Beacon SerialNumber">Beacon SerialNumber</abbr></th>
-              <th><abbr title="Beacon">Beacon</abbr></th>
-              <th><abbr title="Hub SerialNumber">Hub SerialNumber</abbr></th>
-              <th><abbr title="Hub">Hub</abbr></th>
-              <th><abbr title="Type">Type</abbr></th>
-              <th><abbr title="Decibels">Decibels</abbr></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr :class="['Row-' + event.id]" v-for="event in events" v-bind:key="event.id">
-              <td>{{ event.id }}</td>
-              <td>{{ event.Time || 'Unknown' }}</td>
-              <td>{{ event.Sequence || 'Unknown' }}</td>
-              <td>{{ event.Beacon_SerialNumber }}</td>
-              <td>{{ event.Beacon }}</td>
-              <td>{{ event.Hub_SerialNumber }}</td>
-              <td>{{ event.Hub }}</td>
-              <td>{{ event.Type }}</td>
-              <td>{{ event.Decibels }}</td>
-            </tr>
-          </tbody>
-        </table>
+        <div class="timeline">
+          <header class="timeline-header">
+            <span class="tag is-medium is-primary">Start</span>
+          </header>
+          <div class="timeline-item" v-for="event of events" v-bind:key="event.id">
+            <div class="timeline-marker"></div>
+            <div class="timeline-content">
+              <p class="heading">{{ new Date(event.Time).toLocaleString() }}</p>
+              <p>{{ event.Type }} </p>
+            </div>
+          </div>
+          <div class="timeline-header">
+            <span class="tag is-medium is-primary">End</span>
+          </div>
+        </div>
       </div>
       <button @click="showEvents" class="modal-close is-large" aria-label="close"></button>
     </div>
@@ -176,6 +152,18 @@ export default Vue.extend({
       }
 
       return 'No event';
+    },
+    getLastTimeOfDevice(serialNumber: string) {
+      const events: Event[] = this.$store.getters['getEventsByBeacon'](serialNumber);
+      const event: Event = this.$store.getters['getEventsByBeacon'](serialNumber)[events.length - 1];
+
+      if (event) {
+        if (event.Time) {
+          return new Date(event.Time).toLocaleString();
+        }
+      }
+
+      return 'Unknown';
     },
     showOnMap(serialNumber: string) {
       const previousActiveRow = document.querySelector('tr.is-selected')
