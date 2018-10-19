@@ -1,5 +1,6 @@
 import Vue from 'vue';
 import Vuex, { StoreOptions } from 'vuex';
+import differenceInMinutes from 'date-fns/difference_in_minutes';
 
 Vue.use(Vuex);
 
@@ -11,6 +12,7 @@ export const MUTATIONS = {
   UPDATE_ACTIVE_DEVICE: 'UPDATE_ACTIVE_DEVICE',
   UPDATE_HUBS: 'UPDATE_HUBS',
   UPDATE_EVENTS: 'UPDATE_EVENTS',
+  UPDATE_TAG_STATUS_FILTER: 'UPDATE_TAG_STATUS_FILTER',
 };
 
 enum DeviceFilterTypes {
@@ -19,6 +21,15 @@ enum DeviceFilterTypes {
   AssetType = 'AssetType',
   AssetDescription = 'AssetDescription',
   Owner = 'Owner',
+}
+
+export enum TagStatusFilter {
+  Active = 'Active',
+  ActiveFound = 'ActiveFound',
+  ActiveOnRoute = 'ActiveOnRoute',
+  ActiveMissing= 'ActiveMissing',
+  ArrivedAtDestination = 'ArrivedAtDestination',
+  Deactivated = 'Deactivated',
 }
 
 interface DeviceTriangulation {
@@ -68,6 +79,7 @@ interface RootState {
   activeDevice: Device | null;
   hubs: Hub[];
   events: Event[];
+  tagStatusFilter: TagStatusFilter | null;
 }
 
 export interface Event {
@@ -104,6 +116,7 @@ const store: StoreOptions<RootState> = {
     activeDevice: null,
     hubs: [],
     events: [],
+    tagStatusFilter: null,
   },
   getters: {
     getEventsByBeacon: (state) => (serialNumber) =>
@@ -111,7 +124,54 @@ const store: StoreOptions<RootState> = {
         return new Date(a.Time).getTime() - new Date(b.Time).getTime();
     }),
     getHubBySerial: (state) => (serialNumber) => state.hubs.find((hub) => hub.SerialNumber === serialNumber),
-    getDeviceListByFilter({ deviceList, filterType, filterValue }) {
+    getDeviceListByFilter({ deviceList, hubs, filterType, filterValue, tagStatusFilter }, { getEventsByBeacon }) {
+      if (tagStatusFilter) {
+        const devices: Device[] = [];
+
+        for (const device of deviceList) {
+          const events: Event[] = getEventsByBeacon(device.SerialNumber);
+
+          if (events) {
+            events.forEach((event) => {
+              const time = new Date(event.Time);
+              const now = new Date();
+
+              switch (tagStatusFilter) {
+                case TagStatusFilter.ActiveFound:
+                  if (differenceInMinutes(time, now) <= 30) {
+                    devices.push(device);
+                  }
+                  break;
+                case TagStatusFilter.ActiveOnRoute:
+                  if (differenceInMinutes(time, now) > 30 && differenceInMinutes(time, now) < 1440) {
+                    devices.push(device);
+                  }
+                  break;
+                case TagStatusFilter.ActiveMissing:
+                  if (differenceInMinutes(time, now) >= 1440) {
+                    devices.push(device);
+                  }
+                  break;
+                case TagStatusFilter.ArrivedAtDestination:
+                  if (differenceInMinutes(time, now) >= 30 && event.Hub) {
+                    devices.push(device);
+                  }
+                  break;
+                case TagStatusFilter.Deactivated:
+                  if (differenceInMinutes(time, now) > 30 && event.Hub) {
+                    devices.push(device);
+                  }
+                  break;
+                default:
+                  break;
+              }
+            });
+          }
+
+          return deviceList.filter((d) => !devices.find((e) => d === e.AssetDescription));
+        }
+      }
+
       if (filterType === DeviceFilterTypes.Null || !filterValue) {
         return deviceList;
       }
@@ -155,6 +215,9 @@ const store: StoreOptions<RootState> = {
     },
     [MUTATIONS.UPDATE_EVENTS](state, { events }) {
       state.events = state.events.concat((events));
+    },
+    [MUTATIONS.UPDATE_TAG_STATUS_FILTER](state, { filter }) {
+      state.tagStatusFilter = filter;
     },
   },
   actions: {

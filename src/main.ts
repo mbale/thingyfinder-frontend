@@ -6,12 +6,12 @@ import router from './router';
 import store from './store';
 import Meta from 'vue-meta';
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faSpinner, faCheck, faQuestion, faMap, faCalendar } from '@fortawesome/free-solid-svg-icons';
+import { faSpinner, faCheck, faQuestion, faMap, faCalendar, faAngleDown } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 
 Vue.config.productionTip = false;
 
-library.add(faSpinner, faCheck, faQuestion, faMap, faCalendar);
+library.add(faSpinner, faCheck, faQuestion, faMap, faCalendar, faAngleDown);
 
 Vue.component('font-awesome-icon', FontAwesomeIcon);
 
