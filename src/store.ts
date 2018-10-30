@@ -171,7 +171,7 @@ const store: StoreOptions<RootState> = {
             });
           }
 
-          return deviceList.filter((d) => !devices.find((e) => d === e.AssetDescription));
+          return deviceList.filter((d) => !devices.find((e) => d.AssetDescription === e.AssetDescription));
         }
       }
 
@@ -225,7 +225,7 @@ const store: StoreOptions<RootState> = {
 
       for (const event of events) {
         let status = '';
-        const hub: Hub = state.hubs.find((h) => h.SerialNumber === event.Hub_SerialNumber) || null;
+        const hub: Hub | null = state.hubs.find((h) => h.SerialNumber === event.Hub_SerialNumber) || null;
 
         if (hub) {
           switch (hub.Name) {
