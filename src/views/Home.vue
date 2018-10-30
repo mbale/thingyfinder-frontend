@@ -14,7 +14,7 @@ import { Device } from '@/store';
 export default Vue.extend({
   name: 'Home',
   metaInfo: {
-    title: 'Thingyfinder - Devices',
+    title: 'John Lewis: Branch Consignment Visibility Trial',
   },
   components: {
     DeviceMap,
@@ -26,9 +26,9 @@ export default Vue.extend({
     },
   },
   async created() {
+    await this.$store.dispatch('getHubs');
     await this.$store.dispatch('getBeacons');
     await this.$store.dispatch('getStates');
-    await this.$store.dispatch('getHubs');
   },
 });
 </script>

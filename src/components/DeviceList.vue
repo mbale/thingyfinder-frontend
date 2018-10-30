@@ -9,7 +9,7 @@
           </p>
         </div>
         <div class="level-item">
-          <div ref="filterDropdown" class="dropdown is-active" @click="toggleFilter">
+          <div ref="filterDropdown" class="dropdown" @click="toggleFilter">
             <div class="dropdown-trigger">
               <button class="button" aria-haspopup="true" aria-controls="dropdown-menu">
                 <span>Filter by TAG status</span>
@@ -100,6 +100,7 @@
           <th><abbr title="LastActiveTime">Last active time</abbr></th>
           <th><abbr title="Location">Location</abbr></th>
           <th><abbr title="History">History</abbr></th>
+          <th><abbr title="GRS Code">GRS Code</abbr></th>
         </tr>
       </thead>
       <tbody>
@@ -122,6 +123,7 @@
               <span>History</span>
             </a>
           </td>
+          <td>{{ device.CustomerSpecificId || 'Unknown' }}</td>
         </tr>
       </tbody>
     </table>
@@ -143,21 +145,22 @@
     <div class="modal" ref="modal">
       <div class="modal-background"></div>
       <div class="modal-content">
-        <div class="timeline">
-          <header class="timeline-header">
-            <span class="tag is-medium is-primary">Start</span>
-          </header>
-          <div class="timeline-item" v-for="event of events" v-bind:key="event.id">
-            <div class="timeline-marker"></div>
-            <div class="timeline-content">
-              <p class="heading">{{ new Date(event.Time).toLocaleString() }}</p>
-              <p>{{ event.Type }} </p>
-            </div>
-          </div>
-          <div class="timeline-header">
-            <span class="tag is-medium is-primary">End</span>
-          </div>
-        </div>
+        <table class="table">
+          <thead>
+            <tr>
+              <th><abbr title="Location">Location</abbr></th>
+              <th><abbr title="Status">Status</abbr></th>
+              <th><abbr title="Time">Time</abbr></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="event of events.slice(0,4)" v-bind:key="event.id" >
+              <th>{{ getDeviceLocation(event.Beacon_SerialNumber) }}</th>
+              <td>{{ event.status }}</td>
+              <td>{{ new Date(event.Time).toLocaleString() }}</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
       <button @click="showEvents" class="modal-close is-large" aria-label="close"></button>
     </div>
@@ -220,7 +223,7 @@ export default Vue.extend({
     },
     getDeviceLocation(serialNumber: string) {
       const events: Event[] = this.$store.getters['getEventsByBeacon'](serialNumber);
-      const event: Event = this.$store.getters['getEventsByBeacon'](serialNumber)[events.length - 1];
+      const event: Event = events[events.length - 1];
 
       if (event) {
         const hub: Hub = this.$store.getters['getHubBySerial'](event.Hub_SerialNumber);
@@ -244,25 +247,13 @@ export default Vue.extend({
 
       return 'Unknown';
     },
-    showOnMap(serialNumber: string) {
-      const previousActiveRow = document.querySelector('tr.is-selected')
-
-      if (previousActiveRow) {
-        previousActiveRow.classList.toggle('is-selected')
-      }
-
-      const row = document.querySelector(`.Row-${serialNumber}`);
-
-      if (row) {
-        this.$store.commit(MUTATIONS.UPDATE_ACTIVE_DEVICE, serialNumber);
-        row.classList.toggle('is-selected');
-      }
-    },
     selectTagStateFilter(tagState: string) {
       this.$store.commit(MUTATIONS.UPDATE_TAG_STATUS_FILTER, { filter: tagState });
     },
     showEvents(serialNumber: string) {
-      this.events = this.$store.getters['getEventsByBeacon'](serialNumber);
+      this.events = this.$store.getters['getEventsByBeacon'](serialNumber).sort((a, b) => {
+        return new Date(b.Time).getTime() - new Date(a.Time).getTime();
+      });
       (this.$refs.modal as HTMLElement).classList.toggle('is-active');
     },
     toggleFilter() {

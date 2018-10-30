@@ -3,7 +3,7 @@
     <nav class="navbar">
       <div class="navbar-brand">
         <router-link to="/" class="navbar-item">
-          <img class="NavBarLogo" src="../public/thingyfinder-logo.svg" alt="Bulma: a modern CSS framework based on Flexbox" width="54" height="54">
+          <img class="NavBarLogo" src="../public/logo-latest.png" width="128" height="128">
         </router-link>
         <div class="navbar-burger burger" data-target="navbarExampleTransparentExample">
           <span></span>
@@ -38,8 +38,9 @@ html, body, #app {
 }
 
 .navbar-item {
+  padding: 15px;
   .NavBarLogo {
-    max-height: 2.8rem;
+    // max-height: 2.8rem;
   }
 }
 

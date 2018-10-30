@@ -65,11 +65,12 @@ interface DeviceTriangulation {
 }
 
 export interface Device {
-  SerialNumber?: string;
-  AssetType?: string;
-  AssetDescription?: string;
-  Owner?: string;
-  DeviceState?: DeviceTriangulation[] | null;
+  SerialNumber: string;
+  AssetType: string;
+  AssetDescription: string;
+  Owner: string;
+  DeviceState: DeviceTriangulation[] | null;
+  CustomerSpecificId: string | null;
 }
 
 interface RootState {
@@ -87,11 +88,13 @@ export interface Event {
   Time: string;
   Sequence: number;
   Beacon_SerialNumber: string;
-  Beacon?: any;
+  Beacon: any;
   Hub_SerialNumber: string;
-  Hub?: any;
-  Type?: any;
+  Hub: any;
+  Type: any;
   Decibels: number;
+  // extend
+  status?: string;
 }
 
 export interface Location {
@@ -213,8 +216,44 @@ const store: StoreOptions<RootState> = {
     [MUTATIONS.UPDATE_HUBS](state, { hubs }) {
       state.hubs = hubs;
     },
-    [MUTATIONS.UPDATE_EVENTS](state, { events }) {
-      state.events = state.events.concat((events));
+    [MUTATIONS.UPDATE_EVENTS](state, { events }: { events: Event[] }) {
+      let extendedEvents: Event[] = [];
+
+      let activated = false;
+      let deactivated = false;
+      let arrived = false;
+
+      for (const event of events) {
+        let status = '';
+        const hub: Hub = state.hubs.find((h) => h.SerialNumber === event.Hub_SerialNumber) || null;
+
+        if (hub) {
+          switch (hub.Name) {
+            case 'NH':
+              if (!activated) {
+                activated = true;
+                status = 'Activated';
+              } else {
+                status = 'Left';
+              }
+              break;
+            case 'SH':
+              if (!arrived) {
+                arrived = true;
+                status = 'Arrived';
+              } else {
+                status = 'Deactivated';
+              }
+              break;
+            default:
+              break;
+          }
+        }
+        event.status = status;
+        extendedEvents.push(event);
+      }
+
+      state.events = state.events.concat(extendedEvents);
     },
     [MUTATIONS.UPDATE_TAG_STATUS_FILTER](state, { filter }) {
       state.tagStatusFilter = filter;
@@ -225,8 +264,8 @@ const store: StoreOptions<RootState> = {
       const { data } = await Vue.axios.get('api/tag');
 
       const filtered: Device[] = data.filter((device: Device) => {
-        if (device.AssetDescription) {
-          if (device.AssetDescription.includes('JL')) {
+        if (device.Owner) {
+          if (device.Owner === 'John Lewis') {
             return true;
           }
           return false;
