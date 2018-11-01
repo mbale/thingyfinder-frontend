@@ -1,5 +1,5 @@
 import Vue from 'vue';
-import Vuex, { StoreOptions } from 'vuex';
+import Vuex, { StoreOptions, ActionTree } from 'vuex';
 import differenceInMinutes from 'date-fns/difference_in_minutes';
 
 Vue.use(Vuex);
@@ -217,43 +217,17 @@ const store: StoreOptions<RootState> = {
       state.hubs = hubs;
     },
     [MUTATIONS.UPDATE_EVENTS](state, { events }: { events: Event[] }) {
-      let extendedEvents: Event[] = [];
+      const eventsOrdered: Event[] = events.sort((a, b) => {
+        return new Date(a.Time).getTime() - new Date(b.Time).getTime();
+      });
 
-      let activated = false;
-      let deactivated = false;
-      let arrived = false;
+      const arrived = eventsOrdered[0];
+      const last = eventsOrdered[eventsOrdered.length - 1];
 
-      for (const event of events) {
-        let status = '';
-        const hub: Hub | null = state.hubs.find((h) => h.SerialNumber === event.Hub_SerialNumber) || null;
+      arrived.status = 'Arrived';
+      last.status = 'Left';
 
-        if (hub) {
-          switch (hub.Name) {
-            case 'NH':
-              if (!activated) {
-                activated = true;
-                status = 'Activated';
-              } else {
-                status = 'Left';
-              }
-              break;
-            case 'SH':
-              if (!arrived) {
-                arrived = true;
-                status = 'Arrived';
-              } else {
-                status = 'Deactivated';
-              }
-              break;
-            default:
-              break;
-          }
-        }
-        event.status = status;
-        extendedEvents.push(event);
-      }
-
-      state.events = state.events.concat(extendedEvents);
+      state.events = state.events.concat([arrived, last]);
     },
     [MUTATIONS.UPDATE_TAG_STATUS_FILTER](state, { filter }) {
       state.tagStatusFilter = filter;
